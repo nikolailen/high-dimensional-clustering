@@ -290,7 +290,15 @@ plot(Y[, 4:5], main = "PCA Components 4 vs 5")
 
 ``` r
 out_hc <- hclust(dist(Y), method = "complete")
-plot(out_hc, main = "Hierarchical Clustering Dendrogram")
+plot(
+  out_hc,
+  labels = FALSE,
+  hang = -1,
+  cex = 0.5,
+  main = "Hierarchical Clustering Dendrogram",
+  xlab = "Station observations (labels hidden)"
+)
+rect.hclust(out_hc, k = 4, border = "steelblue")
 ```
 
 <img src="index_files/figure-gfm/unnamed-chunk-17-1.png" alt="" style="display: block; margin: auto;" />
