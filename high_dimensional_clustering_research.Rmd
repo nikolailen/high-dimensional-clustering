@@ -218,10 +218,44 @@ hc_map_data <- data.frame(
   cluster = factor(hc_clust)
 )
 
-ggplot(hc_map_data, aes(x = longitude, y = latitude, color = cluster)) +
-  geom_point(size = 1.8, alpha = 0.8) +
+paris_bbox <- list(
+  xmin = min(hc_map_data$longitude) - 0.03,
+  xmax = max(hc_map_data$longitude) + 0.03,
+  ymin = min(hc_map_data$latitude) - 0.03,
+  ymax = max(hc_map_data$latitude) + 0.03
+)
+
+basemap_df <- NULL
+if (requireNamespace("maps", quietly = TRUE)) {
+  world_df <- ggplot2::map_data("world")
+  basemap_df <- subset(
+    world_df,
+    long >= paris_bbox$xmin & long <= paris_bbox$xmax &
+      lat >= paris_bbox$ymin & lat <= paris_bbox$ymax
+  )
+}
+
+p_hc <- ggplot()
+if (!is.null(basemap_df) && nrow(basemap_df) > 0) {
+  p_hc <- p_hc +
+    geom_polygon(
+      data = basemap_df,
+      aes(x = long, y = lat, group = group),
+      fill = "grey96",
+      color = "grey70",
+      linewidth = 0.2
+    )
+}
+
+p_hc +
+  geom_point(data = hc_map_data, aes(x = longitude, y = latitude, color = cluster), size = 1.8, alpha = 0.85) +
+  coord_quickmap(
+    xlim = c(paris_bbox$xmin, paris_bbox$xmax),
+    ylim = c(paris_bbox$ymin, paris_bbox$ymax),
+    expand = FALSE
+  ) +
   labs(
-    title = "Hierarchical Clusters on Station Coordinates",
+    title = "Hierarchical Clusters on Paris Station Map",
     x = "Longitude",
     y = "Latitude",
     color = "Cluster"
@@ -252,10 +286,27 @@ km_map_data <- data.frame(
   cluster = factor(out_km$cluster)
 )
 
-ggplot(km_map_data, aes(x = longitude, y = latitude, color = cluster)) +
-  geom_point(size = 1.8, alpha = 0.8) +
+p_km <- ggplot()
+if (!is.null(basemap_df) && nrow(basemap_df) > 0) {
+  p_km <- p_km +
+    geom_polygon(
+      data = basemap_df,
+      aes(x = long, y = lat, group = group),
+      fill = "grey96",
+      color = "grey70",
+      linewidth = 0.2
+    )
+}
+
+p_km +
+  geom_point(data = km_map_data, aes(x = longitude, y = latitude, color = cluster), size = 1.8, alpha = 0.85) +
+  coord_quickmap(
+    xlim = c(paris_bbox$xmin, paris_bbox$xmax),
+    ylim = c(paris_bbox$ymin, paris_bbox$ymax),
+    expand = FALSE
+  ) +
   labs(
-    title = "k-means Clusters on Station Coordinates (k=5)",
+    title = "k-means Clusters on Paris Station Map (k=5)",
     x = "Longitude",
     y = "Latitude",
     color = "Cluster"
