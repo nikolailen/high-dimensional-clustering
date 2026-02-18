@@ -313,42 +313,64 @@ paris_bbox <- list(
   ymax = max(hc_map_data$latitude) + 0.03
 )
 
-basemap_df <- NULL
-if (requireNamespace("maps", quietly = TRUE)) {
-  world_df <- ggplot2::map_data("world")
-  basemap_df <- subset(
-    world_df,
-    long >= paris_bbox$xmin & long <= paris_bbox$xmax &
-      lat >= paris_bbox$ymin & lat <= paris_bbox$ymax
-  )
-}
-
-p_hc <- ggplot()
-if (!is.null(basemap_df) && nrow(basemap_df) > 0) {
-  p_hc <- p_hc +
-    geom_polygon(
-      data = basemap_df,
-      aes(x = long, y = lat, group = group),
-      fill = "grey96",
-      color = "grey70",
-      linewidth = 0.2
+render_interactive <- knitr::pandoc_to() %in% c("html", "html4", "html5")
+if (render_interactive && requireNamespace("leaflet", quietly = TRUE)) {
+  hc_palette <- leaflet::colorFactor("RdYlBu", domain = hc_map_data$cluster)
+  leaflet::leaflet(hc_map_data) |>
+    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron) |>
+    leaflet::fitBounds(
+      lng1 = paris_bbox$xmin,
+      lat1 = paris_bbox$ymin,
+      lng2 = paris_bbox$xmax,
+      lat2 = paris_bbox$ymax
+    ) |>
+    leaflet::addCircleMarkers(
+      lng = ~longitude,
+      lat = ~latitude,
+      radius = 3,
+      color = ~hc_palette(cluster),
+      stroke = FALSE,
+      fillOpacity = 0.9,
+      popup = ~paste("Cluster:", cluster)
     )
-}
+} else {
+  basemap_df <- NULL
+  if (requireNamespace("maps", quietly = TRUE)) {
+    world_df <- ggplot2::map_data("world")
+    basemap_df <- subset(
+      world_df,
+      long >= paris_bbox$xmin & long <= paris_bbox$xmax &
+        lat >= paris_bbox$ymin & lat <= paris_bbox$ymax
+    )
+  }
 
-p_hc +
-  geom_point(data = hc_map_data, aes(x = longitude, y = latitude, color = cluster), size = 1.8, alpha = 0.85) +
-  coord_quickmap(
-    xlim = c(paris_bbox$xmin, paris_bbox$xmax),
-    ylim = c(paris_bbox$ymin, paris_bbox$ymax),
-    expand = FALSE
-  ) +
-  labs(
-    title = "Hierarchical Clusters on Paris Station Map",
-    x = "Longitude",
-    y = "Latitude",
-    color = "Cluster"
-  ) +
-  theme_minimal()
+  p_hc <- ggplot()
+  if (!is.null(basemap_df) && nrow(basemap_df) > 0) {
+    p_hc <- p_hc +
+      geom_polygon(
+        data = basemap_df,
+        aes(x = long, y = lat, group = group),
+        fill = "grey96",
+        color = "grey70",
+        linewidth = 0.2
+      )
+  }
+
+  p_hc +
+    geom_point(data = hc_map_data, aes(x = longitude, y = latitude, color = cluster), size = 1.8, alpha = 0.85) +
+    coord_quickmap(
+      xlim = c(paris_bbox$xmin, paris_bbox$xmax),
+      ylim = c(paris_bbox$ymin, paris_bbox$ymax),
+      expand = FALSE
+    ) +
+    labs(
+      title = "Hierarchical Clusters on Paris Station Map",
+      x = "Longitude",
+      y = "Latitude",
+      color = "Cluster"
+    ) +
+    theme_minimal()
+}
 ```
 
 <img src="index_files/figure-gfm/unnamed-chunk-19-1.png" alt="" style="display: block; margin: auto;" />
@@ -378,32 +400,54 @@ km_map_data <- data.frame(
   cluster = factor(out_km$cluster)
 )
 
-p_km <- ggplot()
-if (!is.null(basemap_df) && nrow(basemap_df) > 0) {
-  p_km <- p_km +
-    geom_polygon(
-      data = basemap_df,
-      aes(x = long, y = lat, group = group),
-      fill = "grey96",
-      color = "grey70",
-      linewidth = 0.2
+render_interactive <- knitr::pandoc_to() %in% c("html", "html4", "html5")
+if (render_interactive && requireNamespace("leaflet", quietly = TRUE)) {
+  km_palette <- leaflet::colorFactor("RdYlBu", domain = km_map_data$cluster)
+  leaflet::leaflet(km_map_data) |>
+    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron) |>
+    leaflet::fitBounds(
+      lng1 = paris_bbox$xmin,
+      lat1 = paris_bbox$ymin,
+      lng2 = paris_bbox$xmax,
+      lat2 = paris_bbox$ymax
+    ) |>
+    leaflet::addCircleMarkers(
+      lng = ~longitude,
+      lat = ~latitude,
+      radius = 3,
+      color = ~km_palette(cluster),
+      stroke = FALSE,
+      fillOpacity = 0.9,
+      popup = ~paste("Cluster:", cluster)
     )
-}
+} else {
+  p_km <- ggplot()
+  if (!is.null(basemap_df) && nrow(basemap_df) > 0) {
+    p_km <- p_km +
+      geom_polygon(
+        data = basemap_df,
+        aes(x = long, y = lat, group = group),
+        fill = "grey96",
+        color = "grey70",
+        linewidth = 0.2
+      )
+  }
 
-p_km +
-  geom_point(data = km_map_data, aes(x = longitude, y = latitude, color = cluster), size = 1.8, alpha = 0.85) +
-  coord_quickmap(
-    xlim = c(paris_bbox$xmin, paris_bbox$xmax),
-    ylim = c(paris_bbox$ymin, paris_bbox$ymax),
-    expand = FALSE
-  ) +
-  labs(
-    title = "k-means Clusters on Paris Station Map (k=5)",
-    x = "Longitude",
-    y = "Latitude",
-    color = "Cluster"
-  ) +
-  theme_minimal()
+  p_km +
+    geom_point(data = km_map_data, aes(x = longitude, y = latitude, color = cluster), size = 1.8, alpha = 0.85) +
+    coord_quickmap(
+      xlim = c(paris_bbox$xmin, paris_bbox$xmax),
+      ylim = c(paris_bbox$ymin, paris_bbox$ymax),
+      expand = FALSE
+    ) +
+    labs(
+      title = "k-means Clusters on Paris Station Map (k=5)",
+      x = "Longitude",
+      y = "Latitude",
+      color = "Cluster"
+    ) +
+    theme_minimal()
+}
 ```
 
 <img src="index_files/figure-gfm/unnamed-chunk-21-1.png" alt="" style="display: block; margin: auto;" />
