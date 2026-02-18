@@ -1,0 +1,381 @@
+High-Dimensional Clustering Research
+================
+
+**Author:** Nikolai Len  
+Data ScienceTech Institute, 2025
+
+# 1. Research Objectives and Methodological Notes
+
+## 1.1 Selecting the Number of Clusters in Gaussian Mixture Models
+
+In Gaussian Mixture Models (GMM), the number of clusters (`K`) is not
+estimated directly by EM, so model selection is required. Main
+strategies are:
+
+1.  **Bayesian Information Criterion (BIC)**  
+    Run EM across multiple values of `K`, compute BIC, and select the
+    model with the best tradeoff between fit and complexity.
+2.  **Akaike Information Criterion (AIC)**  
+    Similar to BIC but with a different complexity penalty, often
+    favoring slightly larger models.
+3.  **Elbow Method on Log-Likelihood**  
+    Plot log-likelihood as `K` increases and select a value near the
+    point of diminishing returns.
+4.  **Cross-Validation**  
+    Use V-fold validation and choose `K` that maximizes average
+    validation likelihood.
+5.  **Stability-Based Selection**  
+    Refit models multiple times for each `K` and prefer solutions with
+    stable cluster assignments.
+
+## 1.2 Double Cross-Validation: Setup and Goal
+
+Double cross-validation uses nested loops:
+
+1.  **Outer loop:** evaluates generalization performance.
+2.  **Inner loop:** tunes model choices and hyperparameters.
+
+The goal is to estimate performance without optimistic bias from tuning
+and evaluation on the same split.
+
+# 2. Synthetic Dataset Demonstration (k-means)
+
+## 2.1 Clustering Quality and Variance
+
+Clustering quality is linked to variance decomposition:
+
+1.  Within-cluster variance (`W`) should be low (compact clusters).
+2.  Between-cluster variance (`B`) should be high (separated clusters).
+3.  Total variance satisfies `S = W + B`.
+
+K-means aims to minimize `W`, which indirectly increases separation
+quality.
+
+## 2.2 Cluster a Synthetic Dataset into Two Groups
+
+### Step 1: Load the synthetic dataset
+
+``` r
+synthetic_points <- read.csv("data/synthetic_cluster_points.csv")
+synthetic_points
+```
+
+    ##   var1 var2
+    ## 1  0.0    1
+    ## 2  0.0    2
+    ## 3  1.0    1
+    ## 4  3.0    1
+    ## 5  3.5    1
+    ## 6  1.0    5
+    ## 7  3.0    4
+    ## 8  4.0    5
+
+### Step 2: Apply k-means with `k = 2`
+
+``` r
+set.seed(42)
+kmeans_result <- kmeans(synthetic_points, centers = 2, nstart = 10)
+
+print(kmeans_result)
+```
+
+    ## K-means clustering with 2 clusters of sizes 5, 3
+    ## 
+    ## Cluster means:
+    ##       var1     var2
+    ## 1 1.500000 1.200000
+    ## 2 2.666667 4.666667
+    ## 
+    ## Clustering vector:
+    ## [1] 1 1 1 1 1 2 2 2
+    ## 
+    ## Within cluster sum of squares by cluster:
+    ## [1] 11.800000  5.333333
+    ##  (between_SS / total_SS =  59.4 %)
+    ## 
+    ## Available components:
+    ## 
+    ## [1] "cluster"      "centers"      "totss"        "withinss"     "tot.withinss"
+    ## [6] "betweenss"    "size"         "iter"         "ifault"
+
+``` r
+print(kmeans_result$cluster)
+```
+
+    ## [1] 1 1 1 1 1 2 2 2
+
+``` r
+print(kmeans_result$centers)
+```
+
+    ##       var1     var2
+    ## 1 1.500000 1.200000
+    ## 2 2.666667 4.666667
+
+### Step 3: Visualize synthetic clusters
+
+``` r
+library(ggplot2)
+
+centers_df <- as.data.frame(kmeans_result$centers)
+
+ggplot(synthetic_points, aes(x = var1, y = var2, color = factor(kmeans_result$cluster))) +
+  geom_point(size = 4) +
+  geom_point(
+    data = centers_df,
+    aes(x = var1, y = var2),
+    color = "black",
+    size = 6,
+    shape = 8
+  ) +
+  labs(
+    title = "k-means Clustering on Synthetic Data (k=2)",
+    x = "var1",
+    y = "var2",
+    color = "Cluster"
+  ) +
+  theme_minimal()
+```
+
+<img src="index_files/figure-gfm/unnamed-chunk-3-1.png" alt="" style="display: block; margin: auto;" />
+
+# 3. High-Dimensional Station Dataset Study
+
+## 3.1 Load the high-dimensional dataset
+
+``` r
+load("data/high_dimensional_station_data.RData")
+```
+
+## 3.2 Descriptive analysis
+
+### Inspect objects
+
+``` r
+summary(velib)
+```
+
+    ##          Length Class      Mode     
+    ## data      181   data.frame list     
+    ## position    2   data.frame list     
+    ## dates     181   -none-     character
+    ## bonus    1189   -none-     numeric  
+    ## names    1189   -none-     character
+
+### Extract key tables
+
+``` r
+X <- velib$data
+position <- velib$position
+```
+
+### Dimensionality and completeness
+
+``` r
+num_features <- ncol(X)
+num_observations <- nrow(X)
+
+cat("Number of features:", num_features, "\n")
+```
+
+    ## Number of features: 181
+
+``` r
+cat("Number of observations:", num_observations, "\n")
+```
+
+    ## Number of observations: 1189
+
+``` r
+cat("Missing values in X:", sum(is.na(X)), "\n")
+```
+
+    ## Missing values in X: 0
+
+``` r
+cat("Missing values in position:", sum(is.na(position)), "\n")
+```
+
+    ## Missing values in position: 0
+
+## 3.3 Dimensionality reduction with PCA
+
+### Fit PCA
+
+``` r
+out <- princomp(X)
+```
+
+### Scree plot
+
+``` r
+screeplot(out)
+```
+
+<img src="index_files/figure-gfm/unnamed-chunk-9-1.png" alt="" style="display: block; margin: auto;" />
+
+### Cattell scree-test helper
+
+``` r
+cattell <- function(x, thd = 0.1) {
+  sc <- abs(diff(x))
+  p <- length(x)
+  d <- p - 1
+  for (j in 1:(p - 2)) {
+    if (prod(sc[(j + 1):length(sc)] < thd * max(sc))) {
+      d <- j
+      break
+    }
+  }
+  d
+}
+```
+
+### Select informative components
+
+``` r
+d_cattell <- cattell(out$sdev)
+d_cattell
+```
+
+    ## [1] 5
+
+``` r
+d_star <- 5
+Y <- predict(out)[, 1:d_star]
+Y[1:10, ]
+```
+
+    ##           Comp.1     Comp.2     Comp.3     Comp.4     Comp.5
+    ## 19117 -1.2040281 -2.2743248  0.3765529 -1.5113583 -0.7208404
+    ## 17111  1.9966378 -4.2517544  0.0101666 -1.1582747 -0.6775315
+    ## 6103   0.8860784  0.8326818  0.4468908 -1.0874062 -1.5082802
+    ## 15042  0.6769466  3.7618830 -0.1271212  2.1575871  2.0098358
+    ## 12003  2.1348525  2.8547899 -0.3616034 -0.8162485  1.2103656
+    ## 13038 -0.3032946 -1.8535891  0.6121352 -0.9463538 -0.9531223
+    ## 17041  0.6261200 -1.9621200  0.6162480 -0.1535873 -0.7289564
+    ## 41203  0.4445372 -3.0455680  0.2804429  0.3607209 -0.4484349
+    ## 43401  3.6341017  0.5580006  0.4430034  0.5438336  1.6503185
+    ## 5015   0.9915129  0.7844612 -1.4838054 -0.1780015  3.4782944
+
+### Pairwise component plots
+
+``` r
+plot(Y[, 1:2], main = "PCA Components 1 vs 2")
+```
+
+<img src="index_files/figure-gfm/unnamed-chunk-13-1.png" alt="" style="display: block; margin: auto;" />
+
+``` r
+plot(Y[, 2:3], main = "PCA Components 2 vs 3")
+```
+
+<img src="index_files/figure-gfm/unnamed-chunk-14-1.png" alt="" style="display: block; margin: auto;" />
+
+``` r
+plot(Y[, 3:4], main = "PCA Components 3 vs 4")
+```
+
+<img src="index_files/figure-gfm/unnamed-chunk-15-1.png" alt="" style="display: block; margin: auto;" />
+
+``` r
+plot(Y[, 4:5], main = "PCA Components 4 vs 5")
+```
+
+<img src="index_files/figure-gfm/unnamed-chunk-16-1.png" alt="" style="display: block; margin: auto;" />
+
+## 3.4 Clustering analysis
+
+### 3.4.1 Hierarchical clustering
+
+``` r
+out_hc <- hclust(dist(Y), method = "complete")
+plot(out_hc, main = "Hierarchical Clustering Dendrogram")
+```
+
+<img src="index_files/figure-gfm/unnamed-chunk-17-1.png" alt="" style="display: block; margin: auto;" />
+
+``` r
+hc_clust <- cutree(out_hc, k = 4)
+```
+
+``` r
+hc_map_data <- data.frame(
+  longitude = position$longitude,
+  latitude = position$latitude,
+  cluster = factor(hc_clust)
+)
+
+ggplot(hc_map_data, aes(x = longitude, y = latitude, color = cluster)) +
+  geom_point(size = 1.8, alpha = 0.8) +
+  labs(
+    title = "Hierarchical Clusters on Station Coordinates",
+    x = "Longitude",
+    y = "Latitude",
+    color = "Cluster"
+  ) +
+  theme_minimal()
+```
+
+<img src="index_files/figure-gfm/unnamed-chunk-19-1.png" alt="" style="display: block; margin: auto;" />
+
+### 3.4.2 k-means clustering
+
+``` r
+k_max <- 20
+J <- rep(NA, k_max)
+
+for (k in 1:k_max) {
+  out_k <- kmeans(Y, k, nstart = 10)
+  J[k] <- out_k$betweenss / out_k$totss
+}
+
+plot(2:k_max, J[2:k_max], type = "b", xlab = "k", ylab = "Between/Total SS")
+```
+
+<img src="index_files/figure-gfm/unnamed-chunk-20-1.png" alt="" style="display: block; margin: auto;" />
+
+``` r
+out_km <- kmeans(Y, 5, nstart = 10)
+
+km_map_data <- data.frame(
+  longitude = position$longitude,
+  latitude = position$latitude,
+  cluster = factor(out_km$cluster)
+)
+
+ggplot(km_map_data, aes(x = longitude, y = latitude, color = cluster)) +
+  geom_point(size = 1.8, alpha = 0.8) +
+  labs(
+    title = "k-means Clusters on Station Coordinates (k=5)",
+    x = "Longitude",
+    y = "Latitude",
+    color = "Cluster"
+  ) +
+  theme_minimal()
+```
+
+<img src="index_files/figure-gfm/unnamed-chunk-21-1.png" alt="" style="display: block; margin: auto;" />
+
+## 3.5 Method comparison
+
+- Hierarchical clustering produces a four-cluster partition with broad
+  regional structure.
+- k-means indicates a plausible range near 4-6 clusters and isolates
+  additional peripheral behavior.
+- Both methods identify spatial grouping patterns, but they differ in
+  how they split dense central regions.
+
+## 3.6 Summary
+
+- PCA reduces a high-dimensional feature space to five principal
+  components for clustering.
+- Hierarchical clustering and k-means provide complementary views of
+  station segmentation.
+- Cluster boundaries are partially overlapping, indicating nuanced
+  structure rather than sharply separated groups.
+
+# Contact
+
+Nikolai Len  
+👤 [LinkedIn](https://www.linkedin.com/in/niklen/)

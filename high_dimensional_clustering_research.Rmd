@@ -1,0 +1,281 @@
+﻿---
+title: "High-Dimensional Clustering Research"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  results = "markup",
+  fig.align = "center",
+  fig.width = 7,
+  fig.height = 5,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+**Author:** Nikolai Len  
+Data ScienceTech Institute, 2025
+
+# 1. Research Objectives and Methodological Notes
+
+## 1.1 Selecting the Number of Clusters in Gaussian Mixture Models
+
+In Gaussian Mixture Models (GMM), the number of clusters (`K`) is not estimated directly by EM, so model selection is required. Main strategies are:
+
+1. **Bayesian Information Criterion (BIC)**  
+   Run EM across multiple values of `K`, compute BIC, and select the model with the best tradeoff between fit and complexity.
+2. **Akaike Information Criterion (AIC)**  
+   Similar to BIC but with a different complexity penalty, often favoring slightly larger models.
+3. **Elbow Method on Log-Likelihood**  
+   Plot log-likelihood as `K` increases and select a value near the point of diminishing returns.
+4. **Cross-Validation**  
+   Use V-fold validation and choose `K` that maximizes average validation likelihood.
+5. **Stability-Based Selection**  
+   Refit models multiple times for each `K` and prefer solutions with stable cluster assignments.
+
+## 1.2 Double Cross-Validation: Setup and Goal
+
+Double cross-validation uses nested loops:
+
+1. **Outer loop:** evaluates generalization performance.
+2. **Inner loop:** tunes model choices and hyperparameters.
+
+The goal is to estimate performance without optimistic bias from tuning and evaluation on the same split.
+
+# 2. Synthetic Dataset Demonstration (k-means)
+
+## 2.1 Clustering Quality and Variance
+
+Clustering quality is linked to variance decomposition:
+
+1. Within-cluster variance (`W`) should be low (compact clusters).
+2. Between-cluster variance (`B`) should be high (separated clusters).
+3. Total variance satisfies `S = W + B`.
+
+K-means aims to minimize `W`, which indirectly increases separation quality.
+
+## 2.2 Cluster a Synthetic Dataset into Two Groups
+
+### Step 1: Load the synthetic dataset
+
+```{r}
+synthetic_points <- read.csv("data/synthetic_cluster_points.csv")
+synthetic_points
+```
+
+### Step 2: Apply k-means with `k = 2`
+
+```{r}
+set.seed(42)
+kmeans_result <- kmeans(synthetic_points, centers = 2, nstart = 10)
+
+print(kmeans_result)
+print(kmeans_result$cluster)
+print(kmeans_result$centers)
+```
+
+### Step 3: Visualize synthetic clusters
+
+```{r}
+library(ggplot2)
+
+centers_df <- as.data.frame(kmeans_result$centers)
+
+ggplot(synthetic_points, aes(x = var1, y = var2, color = factor(kmeans_result$cluster))) +
+  geom_point(size = 4) +
+  geom_point(
+    data = centers_df,
+    aes(x = var1, y = var2),
+    color = "black",
+    size = 6,
+    shape = 8
+  ) +
+  labs(
+    title = "k-means Clustering on Synthetic Data (k=2)",
+    x = "var1",
+    y = "var2",
+    color = "Cluster"
+  ) +
+  theme_minimal()
+```
+
+# 3. High-Dimensional Station Dataset Study
+
+## 3.1 Load the high-dimensional dataset
+
+```{r}
+load("data/high_dimensional_station_data.RData")
+```
+
+## 3.2 Descriptive analysis
+
+### Inspect objects
+
+```{r}
+summary(velib)
+```
+
+### Extract key tables
+
+```{r}
+X <- velib$data
+position <- velib$position
+```
+
+### Dimensionality and completeness
+
+```{r}
+num_features <- ncol(X)
+num_observations <- nrow(X)
+
+cat("Number of features:", num_features, "\n")
+cat("Number of observations:", num_observations, "\n")
+cat("Missing values in X:", sum(is.na(X)), "\n")
+cat("Missing values in position:", sum(is.na(position)), "\n")
+```
+
+## 3.3 Dimensionality reduction with PCA
+
+### Fit PCA
+
+```{r}
+out <- princomp(X)
+```
+
+### Scree plot
+
+```{r}
+screeplot(out)
+```
+
+### Cattell scree-test helper
+
+```{r}
+cattell <- function(x, thd = 0.1) {
+  sc <- abs(diff(x))
+  p <- length(x)
+  d <- p - 1
+  for (j in 1:(p - 2)) {
+    if (prod(sc[(j + 1):length(sc)] < thd * max(sc))) {
+      d <- j
+      break
+    }
+  }
+  d
+}
+```
+
+### Select informative components
+
+```{r}
+d_cattell <- cattell(out$sdev)
+d_cattell
+```
+
+```{r}
+d_star <- 5
+Y <- predict(out)[, 1:d_star]
+Y[1:10, ]
+```
+
+### Pairwise component plots
+
+```{r}
+plot(Y[, 1:2], main = "PCA Components 1 vs 2")
+```
+
+```{r}
+plot(Y[, 2:3], main = "PCA Components 2 vs 3")
+```
+
+```{r}
+plot(Y[, 3:4], main = "PCA Components 3 vs 4")
+```
+
+```{r}
+plot(Y[, 4:5], main = "PCA Components 4 vs 5")
+```
+
+## 3.4 Clustering analysis
+
+### 3.4.1 Hierarchical clustering
+
+```{r}
+out_hc <- hclust(dist(Y), method = "complete")
+plot(out_hc, main = "Hierarchical Clustering Dendrogram")
+```
+
+```{r}
+hc_clust <- cutree(out_hc, k = 4)
+```
+
+```{r}
+hc_map_data <- data.frame(
+  longitude = position$longitude,
+  latitude = position$latitude,
+  cluster = factor(hc_clust)
+)
+
+ggplot(hc_map_data, aes(x = longitude, y = latitude, color = cluster)) +
+  geom_point(size = 1.8, alpha = 0.8) +
+  labs(
+    title = "Hierarchical Clusters on Station Coordinates",
+    x = "Longitude",
+    y = "Latitude",
+    color = "Cluster"
+  ) +
+  theme_minimal()
+```
+
+### 3.4.2 k-means clustering
+
+```{r}
+k_max <- 20
+J <- rep(NA, k_max)
+
+for (k in 1:k_max) {
+  out_k <- kmeans(Y, k, nstart = 10)
+  J[k] <- out_k$betweenss / out_k$totss
+}
+
+plot(2:k_max, J[2:k_max], type = "b", xlab = "k", ylab = "Between/Total SS")
+```
+
+```{r}
+out_km <- kmeans(Y, 5, nstart = 10)
+
+km_map_data <- data.frame(
+  longitude = position$longitude,
+  latitude = position$latitude,
+  cluster = factor(out_km$cluster)
+)
+
+ggplot(km_map_data, aes(x = longitude, y = latitude, color = cluster)) +
+  geom_point(size = 1.8, alpha = 0.8) +
+  labs(
+    title = "k-means Clusters on Station Coordinates (k=5)",
+    x = "Longitude",
+    y = "Latitude",
+    color = "Cluster"
+  ) +
+  theme_minimal()
+```
+
+## 3.5 Method comparison
+
+- Hierarchical clustering produces a four-cluster partition with broad regional structure.
+- k-means indicates a plausible range near 4-6 clusters and isolates additional peripheral behavior.
+- Both methods identify spatial grouping patterns, but they differ in how they split dense central regions.
+
+## 3.6 Summary
+
+- PCA reduces a high-dimensional feature space to five principal components for clustering.
+- Hierarchical clustering and k-means provide complementary views of station segmentation.
+- Cluster boundaries are partially overlapping, indicating nuanced structure rather than sharply separated groups.
+
+# Contact
+
+Nikolai Len  
+👤 [LinkedIn](https://www.linkedin.com/in/niklen/)

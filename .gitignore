@@ -1,0 +1,18 @@
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+.Rproj
+*.Rproj
+
+# Render intermediates
+*_cache/
+*_files/
+!index_files/
+!index_files/**
+*.knit.md
+index.html
+
+# OS
+.DS_Store
+Thumbs.db
