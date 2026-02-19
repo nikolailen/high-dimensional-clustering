@@ -10,7 +10,12 @@ This repository contains an **R** research project on high-dimensional data anal
 The workflow combines dimensionality reduction and unsupervised learning to study structure in station-level data.
 
 Datasets used:
-- `data/high_dimensional_station_data.RData`: main high-dimensional station dataset (1,189 observations, 181 features in `velib$data`, plus station coordinates in `velib$position`).
+- `data/high_dimensional_station_data.RData`: contains the `velib` object used for the main analysis:
+  - `velib$data`: `1189 x 181` normalized station activity matrix (`V1`...`V181`) with station IDs as row names.
+  - `velib$position`: `1189 x 2` geographic coordinates (`longitude`, `latitude`) for map-based cluster visualization.
+  - `velib$names`: station name labels (length `1189`).
+  - `velib$bonus`: binary station attribute (`0/1`, length `1189`).
+  - `velib$dates`: dimension labels associated with the 181 profile columns.
 - `data/synthetic_cluster_points.csv`: small synthetic 2D dataset used to demonstrate k-means clustering behavior.
 
 ## Methods
