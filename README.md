@@ -10,12 +10,13 @@ This repository contains an **R** research project on high-dimensional data anal
 The workflow combines dimensionality reduction and unsupervised learning to study structure in station-level data.
 
 Datasets used:
-- `data/high_dimensional_station_data.RData`: contains the `velib` object used for the main analysis:
-  - `velib$data`: `1189 x 181` normalized station activity matrix (`V1`...`V181`) with station IDs as row names.
-  - `velib$position`: `1189 x 2` geographic coordinates (`longitude`, `latitude`) for map-based cluster visualization.
-  - `velib$names`: station name labels (length `1189`).
-  - `velib$bonus`: binary station attribute (`0/1`, length `1189`).
-  - `velib$dates`: dimension labels associated with the 181 profile columns.
+- `data/high_dimensional_station_data.RData`: main **Vélib** dataset.  
+  Vélib is the public bike-sharing system in Paris. In simple terms, this dataset describes how bike stations behave across the city over time, so we can discover groups of stations with similar usage patterns.
+  - Each station has an activity profile (`velib$data`) used for clustering.
+  - Station coordinates (`velib$position`) let us place clusters on a city map.
+  - Station labels (`velib$names`) make results human-readable.
+  - `velib$bonus` is a binary station attribute (`0/1`) included in the source data.
+  - `velib$dates` contains labels for the profile dimensions.
 - `data/synthetic_cluster_points.csv`: small synthetic 2D dataset used to demonstrate k-means clustering behavior.
 
 ## Methods
