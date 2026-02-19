@@ -9,11 +9,9 @@
 This repository contains an **R** research project on high-dimensional data analysis and clustering.  
 The workflow combines dimensionality reduction and unsupervised learning to study structure in station-level data.
 
-## Documentation
-
-- Main documentation: [GitHub Pages site](https://nikolailen.github.io/high-dimensional-clustering/)
-- Source report: `high_dimensional_clustering_research.Rmd`
-- Published page source: `index.md`
+Datasets used:
+- `data/high_dimensional_station_data.RData`: main high-dimensional station dataset (1,189 observations, 181 features in `velib$data`, plus station coordinates in `velib$position`).
+- `data/synthetic_cluster_points.csv`: small synthetic 2D dataset used to demonstrate k-means clustering behavior.
 
 ## Methods
 
@@ -28,8 +26,6 @@ The workflow combines dimensionality reduction and unsupervised learning to stud
 - `index_files/` - generated figures for markdown publication
 - `data/high_dimensional_station_data.RData` - high-dimensional station dataset
 - `data/synthetic_cluster_points.csv` - synthetic 2D dataset used in the k-means demonstration
-- `archive/legacy_report_2025.html` - archived legacy render
-- `archive/legacy_report_2025.pdf` - archived legacy render
 - `LICENSE` - MIT License
 
 ## Reproducibility (R)
