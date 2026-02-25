@@ -481,4 +481,5 @@ if (render_interactive && requireNamespace("leaflet", quietly = TRUE)) {
 # Contact
 
 Nikolai Len  
-👤 [LinkedIn](https://www.linkedin.com/in/niklen/)
+LinkedIn: [LinkedIn](https://www.linkedin.com/in/niklen/)  
+Source code: [GitHub repository](https://github.com/nikolailen/high-dimensional-clustering)
