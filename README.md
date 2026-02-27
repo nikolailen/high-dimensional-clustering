@@ -1,8 +1,8 @@
 ﻿# High-Dimensional Clustering Research
 
-🌐 [Project page](https://nikolailen.github.io/high-dimensional-clustering/)
+🌐 [Project page](https://nicolas-len.github.io/high-dimensional-clustering/)
 
-👤 Project contact: [Nikolai Len](https://www.linkedin.com/in/niklen/)
+👤 Project contact: [Nicolas Len](https://www.linkedin.com/in/niclen/)
 
 ## Overview
 
@@ -45,3 +45,4 @@ Rscript -e "rmarkdown::render('high_dimensional_clustering_research.Rmd', output
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE).
+

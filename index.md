@@ -1,7 +1,7 @@
 High-Dimensional Clustering Research
 ================
 
-**Author:** Nikolai Len  
+**Author:** [Nicolas Len](https://www.linkedin.com/in/niclen/)  
 Data ScienceTech Institute, 2025
 
 # 1. Research Objectives and Methodological Notes
@@ -480,6 +480,7 @@ if (render_interactive && requireNamespace("leaflet", quietly = TRUE)) {
 
 # Contact
 
-Nikolai Len  
-LinkedIn: [LinkedIn](https://www.linkedin.com/in/niklen/)  
-Source code: [GitHub repository](https://github.com/nikolailen/high-dimensional-clustering)
+[Nicolas Len](https://www.linkedin.com/in/niclen/)  
+Project page: [High-Dimensional Clustering](https://nicolas-len.github.io/high-dimensional-clustering/)  
+Source code: [GitHub repository](https://github.com/nicolas-len/high-dimensional-clustering)
+
